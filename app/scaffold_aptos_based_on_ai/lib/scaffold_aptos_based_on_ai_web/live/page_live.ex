@@ -127,15 +127,15 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
   end
 
   def do_handle_event(%{"question_input" => question}, 1, socket) do
-    answer = "Hello, 1!"
-    # {:ok,
-    #   %{
-    #     code: 0,
-    #     data: %{
-    #       answer: answer
-    #     }
-    #   }
-    # } = DivenChatInteractor.chat(question)
+    # answer = "Hello, 1!"
+    {:ok,
+      %{
+        code: 0,
+        data: %{
+          answer: answer
+        }
+      }
+    } = DivenChatInteractor.chat(question)
     {
       :noreply, 
       assign(socket,
@@ -149,6 +149,8 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
     # get the answer by the GPT.
     {:ok, %{similarities: similarities}} = 
       EmbedbaseInteractor.search_data(@embedbase_id, question)
+      similarities = handle_search_results(similarities)
+      IO.puts inspect similarities
     {
       :noreply, 
       assign(socket,
@@ -156,6 +158,23 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
         search_result: similarities
       )
     }
+  end
+
+  def handle_search_results(similarities) do
+    Enum.map(similarities, fn elem -> 
+      url = 
+        case elem.metadata.file_name do
+          "hello_blockchain" ->
+            "https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/move-examples/hello_blockchain/sources/hello_blockchain.move"
+          "hello_prover" ->
+            "https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/move-examples/hello_prover/sources/prove.move"
+          "common_account" ->
+            "https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/move-examples/common_account/sources/common_account.move"
+          "iterable_table" ->
+            "https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/move-examples/data_structures/sources/iterable_table.move"
+        end
+      Map.put(elem, :url, url)
+    end)
   end
 
   def do_handle_event(%{"question_input_3" => question}, 3, socket) do
@@ -271,7 +290,8 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
               <%= for elem <- assigns[:search_result] do %>
                 <.tr>
                   <.td><%= elem.data %></.td>
-                  <.td><%= inspect(elem.metadata) %></.td>
+                  <.td><a href={"#{elem.url}"} style="color:blue" target="_blank"><%= elem.metadata.file_name %></a></.td>
+                  <.td><%= elem.metadata.type %></.td>
                 </.tr>
               <% end %>
               </tbody>
