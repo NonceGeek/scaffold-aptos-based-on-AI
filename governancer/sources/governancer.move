@@ -14,6 +14,8 @@ module my_addr::governancer {
     const EAlreadyVoted: u64 = 1;
     const EOutDated: u64 = 2;
 
+    const ENotAdmin: u64 = 3;
+
 
     // ======== Struct =========
 
@@ -85,6 +87,8 @@ module my_addr::governancer {
         })
     }
 
+    // === function about proposals ===
+
     public entry fun proposal(acct: &signer, title: String, content_hash: String) acquires ProposalSet {
         // Create A proposal
         let proposal = Proposal {
@@ -95,9 +99,11 @@ module my_addr::governancer {
             approve: 0,
             deny: 0,
         };
-        // Emit the event after create proposal
+        // Table Change.
+        let proposal_set = borrow_global_mut<ProposalSet>(@my_addr);
+        table::add(&mut proposal_set.proposal_map, title, proposal);
+        // Emit the event after create proposal.
         emit_create_proposal_event(signer::address_of(acct), title, content_hash);
-        move_to<Proposal>(acct, proposal);
     }
 
     fun emit_create_proposal_event(voter: address, title: String, content_hash: String) acquires ProposalSet {
@@ -109,14 +115,25 @@ module my_addr::governancer {
         event::emit_event(&mut borrow_global_mut<ProposalSet>(@my_addr).new_proposal_events, event);
     }
 
-    // public entry fun add_voter(acct: &signer,  voter: address) acquires ProposalSet {
-    //     // Emit the event before add voter
-    //     emit_add_voter_event(signer::address_of(acct), voter);
-    //     // Add voter
-    //     let mut proposal_set = borrow_global_mut<ProposalSet>(@my_addr);
-    //     let mut voters = proposal_set.voters;
-    //     vector::push_back(&mut voters, voter);
-    //     proposal_set.voters = voters;
-    // }
+    // TODO: approve
+    // TODO: deny
+    // TODO: vote_check
+
+    // === function about voters ===
+
+    public entry fun add_voter(acct: &signer,  voter: address) acquires Voters {
+        assert!(signer::address_of(acct) == @my_addr, ENotAdmin);
+        // Add voter
+        let voters = borrow_global_mut<Voters>(@my_addr);
+        vector::push_back(&mut voters.voters_list, voter);
+        // TODO: emit
+    }
+
+    public entry fun remove_voter(acct: &signer,  voter: address) acquires Voters {
+        assert!(signer::address_of(acct) == @my_addr, ENotAdmin);
+        // TODO: Remove voter
+        let voters = borrow_global_mut<Voters>(@my_addr);
+        // TODO: emit
+    }
 
 }
