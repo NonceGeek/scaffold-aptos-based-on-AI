@@ -1,5 +1,5 @@
-defmodule ScaffoldSuiBasedOnAiWeb.ErrorHTML do
-  use ScaffoldSuiBasedOnAiWeb, :html
+defmodule ScaffoldAptosBasedOnAIWeb.ErrorHTML do
+  use ScaffoldAptosBasedOnAIWeb, :html
 
   # If you want to customize your error pages,
   # uncomment the embed_templates/1 call below

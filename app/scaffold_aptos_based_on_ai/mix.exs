@@ -65,6 +65,11 @@ defmodule ScaffoldAptosBasedOnAI.MixProject do
 
       {:ecto, "~> 3.7", override: true},
       {:graphvix, "~> 1.1.0", git: "https://github.com/leeduckgo/graphvix.git", branch: "main"},
+
+
+      # openai
+      {:openai, "~> 0.4.2"},
+      {:httpoison, "~> 2.0", override: true},
     ]
   end
 

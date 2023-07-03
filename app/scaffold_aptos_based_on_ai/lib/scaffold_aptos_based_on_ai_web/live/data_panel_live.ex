@@ -1,5 +1,5 @@
-defmodule ScaffoldSuiBasedOnAiWeb.DataPanelLive do
-  use ScaffoldSuiBasedOnAiWeb, :live_view
+defmodule ScaffoldAptosBasedOnAIWeb.DataPanelLive do
+  use ScaffoldAptosBasedOnAIWeb, :live_view
   alias ScaffoldAptosBasedOnAI.{App, ProjectAnalyzer}
 
   @impl true

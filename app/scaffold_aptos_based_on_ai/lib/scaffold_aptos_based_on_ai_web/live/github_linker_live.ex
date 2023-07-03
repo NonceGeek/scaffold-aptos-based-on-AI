@@ -1,5 +1,5 @@
-defmodule ScaffoldSuiBasedOnAiWeb.GithubLinkerLive do
-    use ScaffoldSuiBasedOnAiWeb, :live_view
+defmodule ScaffoldAptosBasedOnAIWeb.GithubLinkerLive do
+    use ScaffoldAptosBasedOnAIWeb, :live_view
     @impl true
     def mount(_params, _session, socket) do
       {:ok, socket}

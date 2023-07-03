@@ -1,129 +1,122 @@
-module governancer::governance {
-    use sui::object::{Self, UID, ID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::vec_set::{Self, VecSet};
-    use std::string::{Self, String};
-    use sui::clock::{Self, Clock};
-    use sui::transfer;
-    use sui::event::emit;
+module my_addr::governancer {
+    use std::signer;
+    use std::string::{String};
+    use std::vector;
+    use aptos_framework::event::{Self, EventHandle};
+    use aptos_framework::account;
+        use std::table::{Self, Table};
 
     // ======== Constants =========
     const VERSION: u64 = 1;
     const SEVEN_DAYS_IN_MS: u64 = 604_800_000;
 
-    // ======== Types =========
-    struct AdminCap has key { id: UID }
-
-    struct Voters has key {
-        id: UID,
-        group: VecSet<address>,
-    }
-
-    struct Proposal has key {
-        id: UID,
-        title: String,
-        content_hash: String,
-        end_time: u64,
-        voted: VecSet<address>,
-        approve: u64,
-        deny: u64,
-    }
-
-    // ======== Events =========
-    struct AddVoter has copy, drop {
-        voter: address,
-    }
-
-    struct RemoveVoter has copy, drop {
-        voter: address,
-    }
-
-    struct NewProposal has copy, drop {
-        proposer: address,
-        id: ID,
-    }
-
-    struct ApproveProposal has copy, drop {
-        voter: address,
-        id: ID,
-    }
-
-    struct DenyProposal has copy, drop {
-        voter: address,
-        id: ID,
-    }
-
-    // ======== Errors =========
     const ENotValidVoter: u64 = 0;
     const EAlreadyVoted: u64 = 1;
     const EOutDated: u64 = 2;
 
-    fun init(ctx: &mut TxContext) {
-        let sender: address = tx_context::sender(ctx);
-        let admin_cap = AdminCap { id: object::new(ctx) };
-        let voting_group = Voters {
-            id: object::new(ctx),
-            group: vec_set::singleton(sender),
-        };
 
-        transfer::transfer(admin_cap, sender);
-        transfer::share_object(voting_group);
+    // ======== Struct =========
+
+    struct Proposal has key, store {
+        title: String,
+        content_hash: String,
+        end_time: u64,
+        voted: vector<address>,
+        approve: u64,
+        deny: u64,
     }
 
-    public entry fun propose(title: vector<u8>, content_hash: vector<u8>, clk: &Clock, ctx: &mut TxContext) {
+    struct Voters has key {
+        voters_list: vector<address>,
+    }
+
+    struct ProposalSet has key, store {
+        proposal_map: Table<String, Proposal>,
+        add_voter_events: EventHandle<AddVoterEvent>,
+        remove_voter_events: EventHandle<RemoveVoterEvent>,
+        new_proposal_events: EventHandle<NewProposalEvent>,
+        approve_proposal_events: EventHandle<ApproveProposalEvent>,
+        deny_proposal_events: EventHandle<DenyProposalEvent>,
+    }
+
+    // ======== Events =========
+
+    struct AddVoterEvent has copy, drop, store {
+        voter: address,
+    }
+
+    struct RemoveVoterEvent has copy, drop, store {
+        voter: address,
+    }
+
+    struct NewProposalEvent has copy, drop, store {
+        proposer: address,
+        title: String,
+        content_hash: String,
+    }
+
+    struct ApproveProposalEvent has copy, drop, store {
+        voter: address,
+        title: String,
+        content_hash: String,
+    }
+
+    struct DenyProposalEvent has copy, drop, store {
+        voter: address,
+        title: String,
+        content_hash: String,
+    }
+
+    // ======== Functions ========
+
+    // This is only callable during publishing.
+    fun init_module(account: &signer) {
+        move_to(account, ProposalSet {
+            proposal_map: table::new(), 
+            add_voter_events: account::new_event_handle<AddVoterEvent>(account),
+            remove_voter_events: account::new_event_handle<RemoveVoterEvent>(account),
+            new_proposal_events: account::new_event_handle<NewProposalEvent>(account),
+            approve_proposal_events: account::new_event_handle<ApproveProposalEvent>(account),
+            deny_proposal_events: account::new_event_handle<DenyProposalEvent>(account),
+        });
+
+        move_to(account, Voters{
+            voters_list: vector::empty<address>(),
+        })
+    }
+
+    public entry fun proposal(acct: &signer, title: String, content_hash: String) acquires ProposalSet {
+        // Create A proposal
         let proposal = Proposal {
-            id: object::new(ctx),
-            title: string::utf8(title),
-            content_hash: string::utf8(content_hash),
-            end_time: clock::timestamp_ms(clk) + SEVEN_DAYS_IN_MS,
-            voted: vec_set::empty(),
+            title: title,
+            content_hash: content_hash,
+            end_time: 0,
+            voted: vector::empty<address>(),
             approve: 0,
             deny: 0,
         };
-        emit(NewProposal {
-            proposer: tx_context::sender(ctx),
-            id: object::id(&proposal),
-        });
-        transfer::share_object(proposal);
+        // Emit the event after create proposal
+        emit_create_proposal_event(signer::address_of(acct), title, content_hash);
+        move_to<Proposal>(acct, proposal);
     }
 
-    public entry fun approve(proposal: &mut Proposal, voters: &Voters, clk: &Clock, ctx: &TxContext) {
-        let voter: address = tx_context::sender(ctx);
-        vote_check(proposal, voters, clk, voter);
-        proposal.approve = proposal.approve + 1;
-        emit( ApproveProposal {
-            voter: voter,
-            id: object::id(proposal),
-        });
+    fun emit_create_proposal_event(voter: address, title: String, content_hash: String) acquires ProposalSet {
+        let event = NewProposalEvent {
+            proposer: voter,
+            title: title,
+            content_hash: content_hash,
+        };
+        event::emit_event(&mut borrow_global_mut<ProposalSet>(@my_addr).new_proposal_events, event);
     }
 
-    public entry fun deny(proposal: &mut Proposal, voters: &Voters, clk: &Clock, ctx: &TxContext) {
-        let voter: address = tx_context::sender(ctx);
-        vote_check(proposal, voters, clk, voter);
-        proposal.deny = proposal.deny + 1;
-        emit( DenyProposal {
-            voter: voter,
-            id: object::id(proposal),
-        });
-    }
-
-    fun vote_check(proposal: &mut Proposal, voters: &Voters, clk: &Clock, voter: address) {
-        assert!(clock::timestamp_ms(clk) < proposal.end_time, EOutDated);
-        assert!(vec_set::contains(&voters.group, &voter), ENotValidVoter);
-        assert!(!vec_set::contains(&proposal.voted, &voter), EAlreadyVoted);
-
-        vec_set::insert(&mut proposal.voted, voter);
-    }
-
-    // === Admin-only functionality ===
-    public entry fun add_voter(voters: &mut Voters, _: &AdminCap, voter: address) {
-        vec_set::insert(&mut voters.group, voter);
-        emit(AddVoter { voter: voter });
-    }
-
-    public entry fun remove_voter(voters: &mut Voters, _: &AdminCap, voter: address) {
-        vec_set::remove(&mut voters.group, &voter);
-        emit(RemoveVoter { voter: voter });
-    }
+    // public entry fun add_voter(acct: &signer,  voter: address) acquires ProposalSet {
+    //     // Emit the event before add voter
+    //     emit_add_voter_event(signer::address_of(acct), voter);
+    //     // Add voter
+    //     let mut proposal_set = borrow_global_mut<ProposalSet>(@my_addr);
+    //     let mut voters = proposal_set.voters;
+    //     vector::push_back(&mut voters, voter);
+    //     proposal_set.voters = voters;
+    // }
 
 }

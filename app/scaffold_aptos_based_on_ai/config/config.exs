@@ -11,14 +11,22 @@ config :scaffold_aptos_based_on_ai,
   ecto_repos: [ScaffoldAptosBasedOnAI.Repo]
 
 # Configures the endpoint
-config :scaffold_aptos_based_on_ai, ScaffoldSuiBasedOnAiWeb.Endpoint,
+config :scaffold_aptos_based_on_ai, ScaffoldAptosBasedOnAIWeb.Endpoint,
   url: [host: "localhost"],
   render_errors: [
-    formats: [html: ScaffoldSuiBasedOnAiWeb.ErrorHTML, json: ScaffoldSuiBasedOnAiWeb.ErrorJSON],
+    formats: [html: ScaffoldAptosBasedOnAIWeb.ErrorHTML, json: ScaffoldAptosBasedOnAIWeb.ErrorJSON],
     layout: false
   ],
   pubsub_server: ScaffoldAptosBasedOnAI.PubSub,
   live_view: [signing_salt: "8Hv+cWMw"]
+
+config :openai,
+  # find it at https://platform.openai.com/account/api-keys
+  api_key: System.get_env("OPENAI_SECRET"),
+  # # find it at https://platform.openai.com/account/org-settings under "Organization ID"
+  # organization_key: "your-organization-key",
+  # optional, passed to [HTTPoison.Request](https://hexdocs.pm/httpoison/HTTPoison.Request.html) options
+  http_options: [recv_timeout: 30_000]
 
 # Configures the mailer
 #
@@ -61,7 +69,7 @@ config :phoenix, :json_library, Jason
 
 config :petal_components,
        :error_translator_function,
-       {ScaffoldSuiBasedOnAiWeb.CoreComponents, :translate_error}
+       {ScaffoldAptosBasedOnAIWeb.CoreComponents, :translate_error}
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

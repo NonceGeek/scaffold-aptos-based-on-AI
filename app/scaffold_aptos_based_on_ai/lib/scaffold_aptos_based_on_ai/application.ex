@@ -9,7 +9,7 @@ defmodule ScaffoldAptosBasedOnAI.Application do
   def start(_type, _args) do
     children = [
       # Start the Telemetry supervisor
-      ScaffoldSuiBasedOnAiWeb.Telemetry,
+      ScaffoldAptosBasedOnAIWeb.Telemetry,
       # Start the Ecto repository
       ScaffoldAptosBasedOnAI.Repo,
       # Start the PubSub system
@@ -17,7 +17,7 @@ defmodule ScaffoldAptosBasedOnAI.Application do
       # Start Finch
       {Finch, name: ScaffoldAptosBasedOnAI.Finch},
       # Start the Endpoint (http/https)
-      ScaffoldSuiBasedOnAiWeb.Endpoint
+      ScaffoldAptosBasedOnAIWeb.Endpoint
       # Start a worker by calling: ScaffoldAptosBasedOnAI.Worker.start_link(arg)
       # {ScaffoldAptosBasedOnAI.Worker, arg}
     ]
@@ -32,7 +32,7 @@ defmodule ScaffoldAptosBasedOnAI.Application do
   # whenever the application is updated.
   @impl true
   def config_change(changed, _new, removed) do
-    ScaffoldSuiBasedOnAiWeb.Endpoint.config_change(changed, removed)
+    ScaffoldAptosBasedOnAIWeb.Endpoint.config_change(changed, removed)
     :ok
   end
 end

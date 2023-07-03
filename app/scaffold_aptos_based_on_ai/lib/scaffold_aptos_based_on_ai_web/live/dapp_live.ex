@@ -1,5 +1,5 @@
-defmodule ScaffoldSuiBasedOnAiWeb.DAppLive do
-  use ScaffoldSuiBasedOnAiWeb, :live_view
+defmodule ScaffoldAptosBasedOnAIWeb.DAppLive do
+  use ScaffoldAptosBasedOnAIWeb, :live_view
 
   @impl true
   def mount(_params, _session, socket) do
@@ -33,15 +33,15 @@ defmodule ScaffoldSuiBasedOnAiWeb.DAppLive do
   def render(assigns) do
     ~H"""
       <.container class="mt-10 mb-32">
-        <center><.h1>Scaffold Sui based on AI <br>dApp Copilot</.h1>
+        <center><.h1>Scaffold Aptos based on AI <br>dApp Copilot</.h1>
         <br>
         <.h5>
-          AI-based Scaffold Sui is a smart contract and dApp programming copilot built on OpenAI and the AI database Embedbase.
+          AI-based Scaffold Aptos is a smart contract and dApp programming copilot built on OpenAI and the AI database Embedbase.
         </.h5>
         <br>
-        <.button color="secondary" label="Visit the Public Vector Dataset about Sui dApp" variant="shadow" />
+        <.button color="secondary" label="Visit the Public Vector Dataset about Aptos dApp" variant="shadow" />
         <br><br>
-        <.button color="white" label="Submit an on-chain Proposal to the  Public Vector Dataset about Sui dApp" variant="shadow" />
+        <.button color="white" label="Submit an on-chain Proposal to the  Public Vector Dataset about Aptos dApp" variant="shadow" />
         <br><br>
         </center>
         <center>

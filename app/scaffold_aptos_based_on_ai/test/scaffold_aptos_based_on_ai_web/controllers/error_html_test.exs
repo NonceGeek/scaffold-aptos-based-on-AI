@@ -1,14 +1,14 @@
-defmodule ScaffoldSuiBasedOnAiWeb.ErrorHTMLTest do
-  use ScaffoldSuiBasedOnAiWeb.ConnCase, async: true
+defmodule ScaffoldAptosBasedOnAIWeb.ErrorHTMLTest do
+  use ScaffoldAptosBasedOnAIWeb.ConnCase, async: true
 
   # Bring render_to_string/4 for testing custom views
   import Phoenix.Template
 
   test "renders 404.html" do
-    assert render_to_string(ScaffoldSuiBasedOnAiWeb.ErrorHTML, "404", "html", []) == "Not Found"
+    assert render_to_string(ScaffoldAptosBasedOnAIWeb.ErrorHTML, "404", "html", []) == "Not Found"
   end
 
   test "renders 500.html" do
-    assert render_to_string(ScaffoldSuiBasedOnAiWeb.ErrorHTML, "500", "html", []) == "Internal Server Error"
+    assert render_to_string(ScaffoldAptosBasedOnAIWeb.ErrorHTML, "500", "html", []) == "Internal Server Error"
   end
 end

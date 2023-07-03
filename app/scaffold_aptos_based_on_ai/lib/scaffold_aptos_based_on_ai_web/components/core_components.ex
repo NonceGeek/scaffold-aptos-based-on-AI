@@ -1,4 +1,4 @@
-defmodule ScaffoldSuiBasedOnAiWeb.CoreComponents do
+defmodule ScaffoldAptosBasedOnAIWeb.CoreComponents do
   @moduledoc """
   Provides core UI components.
 
@@ -12,7 +12,7 @@ defmodule ScaffoldSuiBasedOnAiWeb.CoreComponents do
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
-  import ScaffoldSuiBasedOnAiWeb.Gettext
+  import ScaffoldAptosBasedOnAIWeb.Gettext
 
   @doc """
   Renders a modal.
@@ -744,9 +744,9 @@ defmodule ScaffoldSuiBasedOnAiWeb.CoreComponents do
     # should be written to the errors.po file. The :count option is
     # set by Ecto and indicates we should also apply plural rules.
     if count = opts[:count] do
-      Gettext.dngettext(ScaffoldSuiBasedOnAiWeb.Gettext, "errors", msg, msg, count, opts)
+      Gettext.dngettext(ScaffoldAptosBasedOnAIWeb.Gettext, "errors", msg, msg, count, opts)
     else
-      Gettext.dgettext(ScaffoldSuiBasedOnAiWeb.Gettext, "errors", msg, opts)
+      Gettext.dgettext(ScaffoldAptosBasedOnAIWeb.Gettext, "errors", msg, opts)
     end
   end
 

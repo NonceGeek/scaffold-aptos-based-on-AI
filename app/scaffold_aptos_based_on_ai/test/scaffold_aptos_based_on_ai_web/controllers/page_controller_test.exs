@@ -1,5 +1,5 @@
-defmodule ScaffoldSuiBasedOnAiWeb.PageControllerTest do
-  use ScaffoldSuiBasedOnAiWeb.ConnCase
+defmodule ScaffoldAptosBasedOnAIWeb.PageControllerTest do
+  use ScaffoldAptosBasedOnAIWeb.ConnCase
 
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")

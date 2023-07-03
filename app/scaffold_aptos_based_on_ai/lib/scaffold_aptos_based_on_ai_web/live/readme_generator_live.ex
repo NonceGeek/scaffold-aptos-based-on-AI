@@ -1,5 +1,5 @@
-defmodule ScaffoldSuiBasedOnAiWeb.ReadmeGeneratorLive do
-  use ScaffoldSuiBasedOnAiWeb, :live_view
+defmodule ScaffoldAptosBasedOnAIWeb.ReadmeGeneratorLive do
+  use ScaffoldAptosBasedOnAIWeb, :live_view
   alias ScaffoldAptosBasedOnAI.ReadmeGenerator
 
   @impl true

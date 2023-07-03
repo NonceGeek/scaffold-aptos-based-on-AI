@@ -15,7 +15,7 @@ config :scaffold_aptos_based_on_ai, ScaffoldAptosBasedOnAI.Repo,
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :scaffold_aptos_based_on_ai, ScaffoldSuiBasedOnAiWeb.Endpoint,
+config :scaffold_aptos_based_on_ai, ScaffoldAptosBasedOnAIWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "twi598leTbcJNAxvKitZGPMr8ZDu9ONMsUY1vk6ubAxy5Dmzx/7QrR9at+voP4X2",
   server: false

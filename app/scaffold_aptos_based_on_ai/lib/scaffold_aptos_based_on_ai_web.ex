@@ -1,12 +1,12 @@
-defmodule ScaffoldSuiBasedOnAiWeb do
+defmodule ScaffoldAptosBasedOnAIWeb do
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, components, channels, and so on.
 
   This can be used in your application as:
 
-      use ScaffoldSuiBasedOnAiWeb, :controller
-      use ScaffoldSuiBasedOnAiWeb, :html
+      use ScaffoldAptosBasedOnAIWeb, :controller
+      use ScaffoldAptosBasedOnAIWeb, :html
 
   The definitions below will be executed for every controller,
   component, etc, so keep them short and clean, focused
@@ -40,10 +40,10 @@ defmodule ScaffoldSuiBasedOnAiWeb do
     quote do
       use Phoenix.Controller,
         formats: [:html, :json],
-        layouts: [html: ScaffoldSuiBasedOnAiWeb.Layouts]
+        layouts: [html: ScaffoldAptosBasedOnAIWeb.Layouts]
 
       import Plug.Conn
-      import ScaffoldSuiBasedOnAiWeb.Gettext
+      import ScaffoldAptosBasedOnAIWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -52,7 +52,7 @@ defmodule ScaffoldSuiBasedOnAiWeb do
   def live_view do
     quote do
       use Phoenix.LiveView,
-        layout: {ScaffoldSuiBasedOnAiWeb.Layouts, :app}
+        layout: {ScaffoldAptosBasedOnAIWeb.Layouts, :app}
 
       unquote(html_helpers())
     end
@@ -84,9 +84,9 @@ defmodule ScaffoldSuiBasedOnAiWeb do
       # HTML escaping functionality
       import Phoenix.HTML
       # Core UI components and translation
-      import ScaffoldSuiBasedOnAiWeb.CoreComponents
+      import ScaffoldAptosBasedOnAIWeb.CoreComponents
       use PetalComponents
-      import ScaffoldSuiBasedOnAiWeb.Gettext
+      import ScaffoldAptosBasedOnAIWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS
@@ -99,9 +99,9 @@ defmodule ScaffoldSuiBasedOnAiWeb do
   def verified_routes do
     quote do
       use Phoenix.VerifiedRoutes,
-        endpoint: ScaffoldSuiBasedOnAiWeb.Endpoint,
-        router: ScaffoldSuiBasedOnAiWeb.Router,
-        statics: ScaffoldSuiBasedOnAiWeb.static_paths()
+        endpoint: ScaffoldAptosBasedOnAIWeb.Endpoint,
+        router: ScaffoldAptosBasedOnAIWeb.Router,
+        statics: ScaffoldAptosBasedOnAIWeb.static_paths()
     end
   end
 
