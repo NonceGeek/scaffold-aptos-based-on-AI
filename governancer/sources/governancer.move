@@ -133,10 +133,19 @@ module my_addr::governancer {
 
     // Impl view function to get proposal.
     #[view]
-    public fun get_proposal(title: String): u64 acquires ProposalSet {
+    public fun get_proposal_approve(title: String): u64 acquires ProposalSet {
         let proposal_set = borrow_global_mut<ProposalSet>(@my_addr);
         // table::borrow_mut(&mut proposal_set.proposal_map, title);
-        1
+        let proposal = table::borrow(&mut proposal_set.proposal_map, title);
+        proposal.approve
+    }
+
+    #[view]
+    public fun get_proposal_deny(title: String): u64 acquires ProposalSet {
+        let proposal_set = borrow_global_mut<ProposalSet>(@my_addr);
+        // table::borrow_mut(&mut proposal_set.proposal_map, title);
+        let proposal = table::borrow(&mut proposal_set.proposal_map, title);
+        proposal.deny
     }
 
     // === function about voters ===

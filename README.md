@@ -7,8 +7,7 @@ AI-based Aptos smart contract and dApp scaffolding, empowering developers to rap
 > 
 > Smart Contract On Testnet:
 > 
-> https://explorer.aptoslabs.com/account/0x8f86da0052e425b0e391a4befaab137aa29d18201b4392deade879aa264383be/modules/run/governancer/get_proposal?network=testnet
-
+> https://explorer.aptoslabs.com/account/0x12e8ba76415eed11eb84a76541e67e35d70dd81f0f2db4065bbc6ded19dfaa1a/modules/run/governancer/add_voter?network=testnet
 ## 0x01 Short Introduction
 
 AI-based Scaffold Aptos is a smart contract and dApp programming assistant built on OpenAI and the AI database [Embedbase](https://embedbase.xyz/). 
