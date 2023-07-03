@@ -18,7 +18,7 @@ defmodule ScaffoldAptosBasedOnAIWeb.Router do
     pipe_through :browser
 
     live "/", PageLive, :index
-    live "/dapp", DAppLive, :index
+    live "/submit_proposal", ProposalLive, :index
     get "/test", PageController, :home
   end
 
