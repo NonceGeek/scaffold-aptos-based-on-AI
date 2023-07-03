@@ -13,6 +13,14 @@ defmodule ScaffoldAptosBasedOnAI.ExChatServiceInteractor do
         ]
     )
   """
+
+  def chat(:chatable, model_name, prompt, question) do
+    msgs = [
+          %{role: "system", content: prompt},
+          %{role: "user", content: question}
+    ]
+    chat(:chatable, model_name, msgs)
+  end
   def chat(:chatable, model_name, msgs) do
     Logger.info("chat_completion: #{inspect(msgs)}")
     OpenAI.chat_completion(
