@@ -1,10 +1,5 @@
 defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
 
-  @module_doc """
-    TODO:
-    * Impl three default answer.
-    * Impl the dataset search function.
-  """
   alias ScaffoldAptosBasedOnAI.DivenChatInteractor
   alias ScaffoldAptosBasedOnAI.ExChatServiceInteractor
   use ScaffoldAptosBasedOnAIWeb, :live_view
@@ -292,8 +287,11 @@ Reference:
           <.button color="secondary" label="Visit the Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
         </a>
         <br><br>
-        <.button color="white" label="Submit an on-chain Proposal to the  Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
+        <a href="/submit_proposal">
+          <.button color="white" label="Submit an on-chain Proposal to the  Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
+        </a>
         <br><br>
+
         </center>
         <.form for={@form} phx-change="change-input" phx-submit="submit">
           <%= case @page do %>
