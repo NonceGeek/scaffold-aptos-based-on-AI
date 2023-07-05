@@ -327,7 +327,25 @@ Move Example Dataset is the dataset about [move-examples](https://github.com/apt
             └── transfer.move
 ```
 
+# How to slice Move Smart Contract into pieces and submit them to Dataset?
 
+Now use GPT-4 to convert the contract into JSON format manually, and then upload it through the script.
 
+The `Prompt` is as following:
 
+````
+You are a Move smart contract programmer, please slice the following code into Struct, Event(Event is struct which name including `Event`), Const, Function and Test parts, display slice fragments of code using Markdown syntax, and use the following json format on the overall output: {"struct": [code_slice_1, code_slice_2], "event": ...}. Attention that every part should NOT be `...`in the test but actually code.
+Code:
+```
+-[The Smart Contract Code]-
+```
+````
+
+Result: 
+
+![image-20230705092556679](https://p.ipic.vip/sigrnh.png)
+
+Then using the `EmbedbaseUploader` to submit them to the embedbase dataset.
+
+> app/scaffold_aptos_based_on_ai/lib/scaffold_aptos_based_on_ai/embedbase_uploader.ex
 
