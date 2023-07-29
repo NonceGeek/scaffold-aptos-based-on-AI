@@ -7,7 +7,7 @@ AI-based Aptos smart contract and dApp scaffolding, empowering developers to rap
 > 
 > Smart Contract On Testnet:
 > 
-> [https://explorer.aptoslabs.com/account/0x12e8ba76415eed11eb84a76541e67e35d70dd81f0f2db4065bbc6ded19dfaa1a/modules/run/governancer/add_voter?network=testnet](https://explorer.aptoslabs.com/account/0x8f86da0052e425b0e391a4befaab137aa29d18201b4392deade879aa264383be/modules/run/governancer/add_voter?network=testnet)
+> [https://explorer.aptoslabs.com/account/ca1fe57768cad929b40d06ad66f87752e11c7f01be485d710ba36215422b2ae0/modules/run/governancer/add_voter?network=testnet](https://explorer.aptoslabs.com/account/ca1fe57768cad929b40d06ad66f87752e11c7f01be485d710ba36215422b2ae0/modules/run/governancer/add_voter?network=testnet)
 >
 > Public Dataset for Aptos Smart Contract:
 >

@@ -74,7 +74,8 @@ module my_addr::governancer {
     // This is only callable during publishing.
     fun init_module(account: &signer) {
         move_to(account, ProposalSet {
-            proposal_map: table::new(), 
+            proposal_map: table::new(),
+            titles: vector::empty<String>(),
             add_voter_events: account::new_event_handle<AddVoterEvent>(account),
             reset_voter_events: account::new_event_handle<ResetVoterEvent>(account),
             new_proposal_events: account::new_event_handle<NewProposalEvent>(account),
