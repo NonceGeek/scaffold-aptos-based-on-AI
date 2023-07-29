@@ -34,6 +34,7 @@ module my_addr::governancer {
 
     struct ProposalSet has key, store {
         proposal_map: Table<String, Proposal>,
+        titles: vector<String>, // all the titles of proposals.
         add_voter_events: EventHandle<AddVoterEvent>,
         reset_voter_events: EventHandle<ResetVoterEvent>,
         new_proposal_events: EventHandle<NewProposalEvent>,
@@ -101,6 +102,8 @@ module my_addr::governancer {
         // Table Change.
         let proposal_set = borrow_global_mut<ProposalSet>(@my_addr);
         table::add(&mut proposal_set.proposal_map, title, proposal);
+        // add index.
+        vector::push_back(&mut proposal_set.titles, title);
         // Emit the event after create proposal.
         emit_create_proposal_event(signer::address_of(acct), title, content_hash);
     }
