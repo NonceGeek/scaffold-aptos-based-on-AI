@@ -2,9 +2,12 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
 
   alias ScaffoldAptosBasedOnAI.DivenChatInteractor
   alias ScaffoldAptosBasedOnAI.ExChatServiceInteractor
+  alias ScaffoldAptosBasedOnAI.{TemplateHandler, SmartPrompterInteractor}
   use ScaffoldAptosBasedOnAIWeb, :live_view
   
-  @embedbase_id "aptos-smart-contracts-fragment-by-structure"
+  @contract_embedbase_id "aptos-smart-contracts-fragment-by-structure"
+  @whitepaper_embedbase_id "aptos-whitepaper"
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok,
@@ -14,7 +17,8 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
       question_now_2: "Give me the examples about the Struct?",
       question_now_3: "Give me the examples about the Function?",
       question_now_4: "Give me the examples about the Event?",
-      question_now_5: "Give me the examples about the Spec?"
+      question_now_5: "Give me the examples about the Spec?",
+      question_now_6: "Give me the examples about the Test?",
      )}
   end
 
@@ -197,25 +201,90 @@ Reference:
     }
   end
 
+
+
+  def handle_event("show_waiting", _, socket) do
+    IO.puts inspect "show_waiting"
+    {
+      :noreply, 
+      assign(socket,
+        show_waiting: true
+      )
+    }
+  end
+
   def handle_event("submit", %{"f" => f}, socket) do
     do_handle_event(f, socket.assigns.page, socket)
   end
 
+  @doc """
+    * call the smart prompter to generate the prompt.
+    * assert if the answer > 10 bytes.
+    * call the GPT to generate the answer.
+  """
   def do_handle_event(%{"question_input" => question}, 1, socket) do
+    # {:ok,
+    #   %{
+    #     code: 0,
+    #     data: %{
+    #       answer: answer
+    #     }
+    #   }
+    # } = DivenChatInteractor.chat(question)
+    # using smart prompter to generate the answer.
     {:ok,
       %{
-        code: 0,
-        data: %{
-          answer: answer
-        }
+        similarities: similarities
       }
-    } = DivenChatInteractor.chat(question)
-    {
-      :noreply, 
-      assign(socket,
-        answer: answer
-      )
-    }
+    } = 
+    EmbedbaseInteractor.search_data(@whitepaper_embedbase_id, question)
+
+    
+    similarity = similarities |> Enum.fetch!(0) |> Map.get(:data) 
+    handle_by_similarity(similarity, question, socket)
+  end
+
+  def handle_by_similarity(similarity, question, socket) do
+    if byte_size(similarity) >= 20 do
+      # similarities.
+      # ask template.
+      %{content: template} = TemplateHandler.find_ask_whitepaper()
+      prompt = TemplateHandler.gen_prompt(template, %{question: question, content: similarity})
+      {:ok,
+        %{
+          data: %{id: topic_id}
+        }
+      } = SmartPrompterInteractor.create_topic(Constants.smart_prompter_endpoint(), prompt)
+      # wait 15 sec for the answer.
+      # TODO: optimize
+      Process.sleep(15000)
+      {:ok,
+        %{
+          data: %{messages: msgs}
+        }
+      } = SmartPrompterInteractor.show_topic(Constants.smart_prompter_endpoint(), topic_id)
+      answer = 
+        msgs
+        |> Enum.find(fn elem -> 
+          elem.role == "assistant"
+        end)
+        |> Map.get(:content)
+      { 
+        :noreply, 
+        assign(socket,
+          answer: answer,
+          prompt: prompt
+        )
+      }
+    else
+    # no similarities. 
+      { 
+        :noreply, 
+        assign(socket,
+          answer: "Sorry, but the question are not in the scope."
+        )
+      }
+    end
   end
 
   def do_handle_event(%{"question_input_2" => question}, 2, socket) do
@@ -226,7 +295,7 @@ Reference:
     # search the dataset about the question.
     # get the answer by the GPT.
     {:ok, %{similarities: similarities}} = 
-      EmbedbaseInteractor.search_data(@embedbase_id, question)
+      EmbedbaseInteractor.search_data(@contract_embedbase_id, question)
       similarities = handle_search_results(similarities)
     # prompt = Enum.reduce(similarities, "Here are the code examples: ```", fn elem, acc -> 
     #   acc <> elem.data <> "\n"
@@ -235,13 +304,46 @@ Reference:
     # prompt = prompt <> "```"
 
     # {:ok, %{choices: [%{"message" => %{"content" => content}}]}} = ExChatServiceInteractor.chat(:chatable, "gpt-3.5-turbo", prompt, question)
+
+    key = get_key_words(question)
+    filted_result = 
+      if key == :no_key do
+        similarities
+      else
+        filter_search_result(similarities, "type", key)
+      end
+
     {
       :noreply, 
       assign(socket,
         # answer: content,
-        search_result: similarities
+        search_result: filted_result
       )
     }
+  end
+
+  def get_key_words(question) do
+    cond do
+      String.contains?(question, "struct") or  String.contains?(question, "Struct") or String.contains?(question, "Structs") or String.contains?(question, "structs") ->
+        "struct"
+      String.contains?(question, "spec") or  String.contains?(question, "Spec") or String.contains?(question, "Specs") or String.contains?(question, "specs") ->
+        "spec"
+      String.contains?(question, "function") or  String.contains?(question, "Function") or String.contains?(question, "Functions") or String.contains?(question, "functions") ->
+        "function"
+      String.contains?(question, "test") or  String.contains?(question, "Test") or String.contains?(question, "Tests") or String.contains?(question, "tests") ->
+        "test"
+      # String.contains?(question, "event") or  String.contains?(question, "Event") or String.contains?(question, "Events") or String.contains?(question, "events") ->
+      #   "event"
+      true ->
+        :no_key
+      end
+  end
+
+  def filter_search_result(search_result, key, value) do
+    Enum.filter(search_result, fn %{metadata: metadata} ->
+      # IO.puts inspect Map.fetch(metadata, String.to_atom(key))
+      Map.fetch(metadata, String.to_atom(key)) == {:ok, value}
+    end)
   end
 
   def handle_search_results(similarities) do
@@ -273,6 +375,11 @@ Reference:
     search_and_ask(question, socket)
   end
 
+  def do_handle_event(%{"question_input_6" => question}, 6, socket) do
+    search_and_ask(question, socket)
+  end
+
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -287,8 +394,8 @@ Reference:
           <.button color="secondary" label="Visit the Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
         </a>
         <br><br>
-        <a href="/submit_proposal">
-          <.button color="white" label="Submit an on-chain Proposal to the  Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
+        <a href="https://ai.movedid.build/proposal_viewer">
+          <.button color="white" label="Submit an on-chain Proposal to the Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
         </a>
         <br><br>
 
@@ -298,7 +405,11 @@ Reference:
           <%= 1 -> %>
             <.text_input form={@form} field={:question_input} placeholder="What is Aptos?" value={assigns[:question_now]}/>
             <br>
-            <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+            <center><.button phx-click="show_waiting" color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+            <br>
+            <%= if assigns[:show_waiting] == true do %>
+              <center><b>Please waiting for 15 sec to get the answer...</b></center>
+            <% end %>
             <br>
             <.p>Recommend Questions:</.p>
             <br>
@@ -338,11 +449,17 @@ Reference:
             <br>
             <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
             <br>
+          <%= 6 -> %>
+            <.text_input form={@form} field={:question_input_6} placeholder="Give me the examples about the Test?" value={assigns[:question_now_6]}/>
+            <br>
+            <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+            <br>
           <%= _others -> %>
             # TODO
           <% end %>
           <br>
           <%= if not is_nil(assigns[:answer]) do %>
+            <p> <b> Smart Answer:  </b></p>
             <%= raw(Earmark.as_html!(assigns[:answer])) %>
           <% end %>
           <%= if not is_nil(assigns[:search_result]) do %>
