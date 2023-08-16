@@ -10,6 +10,8 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    # set session.
+    :ok = SmartPrompterInteractor.set_session(Constants.smart_prompter_endpoint())
     {:ok,
      assign(socket,
       form: to_form(%{}, as: :f),
