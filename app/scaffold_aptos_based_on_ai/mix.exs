@@ -9,7 +9,8 @@ defmodule ScaffoldAptosBasedOnAI.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
-      deps: deps()
+      deps: deps(),
+      # escript: [main_module: ScaffoldAptosBasedOnAI.CLI]# for the build of cli tool.
     ]
   end
 

@@ -64,6 +64,8 @@ defmodule ScaffoldAptosBasedOnAI.SmartPrompterInteractor do
   end
 
   def set_session(endpoint) do
+    ## TODO: Update/set_session if not login yet, else use the session now.
+    ## Dont forget the same thing in VectorDB.
     {
       :ok,
         %{

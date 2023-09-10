@@ -6,7 +6,7 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
   use ScaffoldAptosBasedOnAIWeb, :live_view
   
   @contract_embedbase_id "aptos-smart-contracts-fragment-by-structure"
-  @whitepaper_embedbase_id "aptos-whitepaper"
+  @whitepaper_embedbase_id "aptos-whitepaper-handled"
 
   @impl true
   def mount(_params, _session, socket) do
@@ -16,11 +16,11 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
      assign(socket,
       form: to_form(%{}, as: :f),
       question_now: "What is Aptos?",
-      question_now_2: "Give me the examples about the Struct?",
-      question_now_3: "Give me the examples about the Function?",
-      question_now_4: "Give me the examples about the Event?",
-      question_now_5: "Give me the examples about the Spec?",
-      question_now_6: "Give me the examples about the Test?",
+      question_now_2: "Give me the examples about the Struct. Generate a Struct called AddressAggregator",
+      question_now_3: "Give me the examples about the Function. Generate a public entry function called add",
+      question_now_4: "Give me the examples about the Event. Generate a event called AddAddressEvent",
+      question_now_5: "Give me the examples about the Spec. Generate a spec for verify the sum function",
+      question_now_6: "Give me the examples about the Test. Generate a test about add function",
      )}
   end
 
@@ -53,12 +53,18 @@ Reference:
 >
 > Document: https://aptos.dev/standards/#object
 """
-
+    {:ok,
+      %{
+        similarities: similarities
+      }
+    } = 
+    EmbedbaseInteractor.search_data(@whitepaper_embedbase_id, "Introduce the Aptos Object Model?")
     {
       :noreply, 
       assign(socket, 
         page: String.to_integer(num),
-        answer: answer
+        answer: answer, 
+        search_result: similarities
       )
     }
   end
@@ -112,11 +118,20 @@ Reference:
 > Document: https://aptos.dev/guides/nfts/aptos-token-comparison/#token-standard-comparison
 
 """
+
+    {:ok,
+      %{
+        similarities: similarities
+      }
+    } = 
+    EmbedbaseInteractor.search_data(@whitepaper_embedbase_id, "How does Aptos design Token Model?")
+    # TODO: search it in the documentation.
     {
       :noreply, 
       assign(socket, 
         page: String.to_integer(num),
-        answer: answer
+        answer: answer,
+        search_result: similarities
       )
     }
   end
@@ -130,11 +145,19 @@ Reference:
 
 > Document: https://aptos.dev/tools/aptos-cli-tool/use-aptos-cli
 """
+
+    {:ok,
+      %{
+        similarities: similarities
+      }
+    } = 
+    EmbedbaseInteractor.search_data(@whitepaper_embedbase_id, "How could I use Aptos CLI?")
     {
       :noreply, 
       assign(socket, 
         page: String.to_integer(num),
-        answer: answer
+        answer: answer, 
+        search_result: similarities
       )
     }
   end
@@ -234,6 +257,7 @@ Reference:
     #   }
     # } = DivenChatInteractor.chat(question)
     # using smart prompter to generate the answer.
+
     {:ok,
       %{
         similarities: similarities
@@ -241,17 +265,90 @@ Reference:
     } = 
     EmbedbaseInteractor.search_data(@whitepaper_embedbase_id, question)
 
-    
-    similarity = similarities |> Enum.fetch!(0) |> Map.get(:data) 
-    handle_by_similarity(similarity, question, socket)
+    send(self(), {:get_answer, similarities, question})
+    { 
+      :noreply, 
+      assign(socket,
+        search_result: similarities
+      )
+    }
   end
 
-  def handle_by_similarity(similarity, question, socket) do
+  def handle_info({:get_answer, similarities, question}, socket) do
+    handle_by_similarity(similarities, question, socket)
+  end
+
+  def handle_info({:get_answer_of_smart_contracts, filted_result, key, question}, socket) do
+    handle_by_similarity_of_smart_contracts(filted_result, key, question, socket)
+  end
+
+  def handle_by_similarity_of_smart_contracts(similarities, key, question, socket) do
+    similarity = similarities |> Enum.fetch!(0) |> Map.get(:data) 
+    similiarities_handled = 
+      similarities
+      |> Enum.map(&(&1.data))
+      |> Enum.reduce("", fn sim, acc -> "#{acc}\n\n* #{sim}" end)
+    if byte_size(similarity) >= 20 do
+      # similarities.
+      # ask template.
+
+      %{content: template} = TemplateHandler.find_generate_move_code()
+
+      prompt = TemplateHandler.gen_prompt(
+        template, 
+        %{question: question, codes: similiarities_handled, type: key}
+        )
+
+      IO.puts inspect prompt
+
+      {:ok,
+        %{
+          data: %{id: topic_id}
+        }
+      } = SmartPrompterInteractor.create_topic(Constants.smart_prompter_endpoint(), prompt)
+      # wait 20 sec for the answer.
+      # TODO: optimize
+      Process.sleep(20000)
+      {:ok,
+        %{
+          data: %{messages: msgs}
+        }
+      } = SmartPrompterInteractor.show_topic(Constants.smart_prompter_endpoint(), topic_id)
+        answer = 
+          msgs
+          |> Enum.find(fn elem -> 
+            elem.role == "assistant"
+          end)
+          |> Map.get(:content)
+        { 
+          :noreply, 
+          assign(socket,
+            answer: answer,
+            prompt: prompt
+          )
+        }
+    else
+    # no similarities. 
+      { 
+        :noreply, 
+        assign(socket,
+          answer: "Sorry, but the question are not in the scope."
+        )
+      }
+    end
+  end
+
+  def handle_by_similarity(similarities, question, socket) do
+    similarity = similarities |> Enum.fetch!(0) |> Map.get(:data) 
+    similiarities_handled = 
+      similarities
+      |> Enum.map(&(&1.data))
+      |> Enum.reduce("", fn sim, acc -> "#{acc}\n\n* #{sim}" end)
     if byte_size(similarity) >= 20 do
       # similarities.
       # ask template.
       %{content: template} = TemplateHandler.find_ask_whitepaper()
-      prompt = TemplateHandler.gen_prompt(template, %{question: question, content: similarity})
+      prompt = TemplateHandler.gen_prompt(template, %{question: question, content: similiarities_handled})
       {:ok,
         %{
           data: %{id: topic_id}
@@ -296,8 +393,9 @@ Reference:
   def search_and_ask(question, socket) do
     # search the dataset about the question.
     # get the answer by the GPT.
+    question_for_ask = String.split(question, ".") |> Enum.fetch!(0)
     {:ok, %{similarities: similarities}} = 
-      EmbedbaseInteractor.search_data(@contract_embedbase_id, question)
+      EmbedbaseInteractor.search_data(@contract_embedbase_id, question_for_ask)
       similarities = handle_search_results(similarities)
     # prompt = Enum.reduce(similarities, "Here are the code examples: ```", fn elem, acc -> 
     #   acc <> elem.data <> "\n"
@@ -314,6 +412,8 @@ Reference:
       else
         filter_search_result(similarities, "type", key)
       end
+    
+    send(self(), {:get_answer_of_smart_contracts, filted_result, key, question})
 
     {
       :noreply, 
@@ -334,8 +434,8 @@ Reference:
         "function"
       String.contains?(question, "test") or  String.contains?(question, "Test") or String.contains?(question, "Tests") or String.contains?(question, "tests") ->
         "test"
-      # String.contains?(question, "event") or  String.contains?(question, "Event") or String.contains?(question, "Events") or String.contains?(question, "events") ->
-      #   "event"
+      String.contains?(question, "event") or  String.contains?(question, "Event") or String.contains?(question, "Events") or String.contains?(question, "events") ->
+        "struct"
       true ->
         :no_key
       end
@@ -386,30 +486,66 @@ Reference:
   def render(assigns) do
     ~H"""
       <.container class="mt-10 mb-32">
-        <center><.h1>Scaffold Aptos based on AI <br>Contract Copilot</.h1>
+        <center><.h1>Scaffold, Your Move Development copilot</.h1>
         <br>
         <.h5>
-          AI-based Scaffold Aptos is a smart contract and dApp programming copilot built on OpenAI and the AI database Embedbase.
+          Scaffold is a smart contract and dApp programming copilot built on OpenAI and the MoveSpaceDB.
         </.h5>
         <br>
-        <a href="https://app.embedbase.xyz/datasets/5e924008-da05-43ce-a858-088a36ce9041" target="_blank">
-          <.button color="secondary" label="Visit the Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
-        </a>
-        <br><br>
-        <a href="https://ai.movedid.build/proposal_viewer">
-          <.button color="white" label="Submit an on-chain Proposal to the Public Vector Dataset about Aptos Smart Contract" variant="shadow" />
-        </a>
-        <br><br>
 
         </center>
         <.form for={@form} phx-change="change-input" phx-submit="submit">
           <%= case @page do %>
-          <%= 1 -> %>
-            <.text_input form={@form} field={:question_input} placeholder="What is Aptos?" value={assigns[:question_now]}/>
+            <%= 1 -> %>
+
+            <.p>Select the Vector Dataset:</.p>
+            <.select options={["aptos-whitepaper-handled": "aptos-whitepaper-handled", "aptos-smart-contracts-fragment-by-structure": "aptos-smart-contracts-fragment-by-structure"]} form={@form} field={:select_dataset} />
+            <br>
+            <.p>Or Input the <a href="https://app.embedbase.xyz/datasets" target="_blank" style="color:blue">Public Dataset</a> Name:</.p>
+            <.text_input form={@form} field={:dataset_name} placeholder="eg. web3-dataset" />
+
+            <!-- result panel -->
+            <div class="grid gap-5 mt-5 md:grid-cols-1 lg:grid-cols-1" style="height: auto;">
+              <.card>
+              <!-- answer -->
+              <%= if not is_nil(assigns[:answer]) do %>
+                <%= raw(Earmark.as_html!(assigns[:answer])) %>
+              
+              <% else %>
+                <br><br><br>
+                  <b>the smart answer would be shown here.</b>
+                <br><br><br><br>
+              <% end %>
+              <!-- search result -->
+              <%= if not is_nil(assigns[:search_result]) do %>
+                <br>
+                <.p><b>Search Results in Dataset:</b></.p>
+                <.table>
+                  <thead>
+                    <.tr>
+                      <.th>Result</.th>
+                      <.th>Metadata</.th>
+                    </.tr>
+                  </thead>
+                  <tbody>
+                  <%= for elem <- assigns[:search_result] do %>
+                    <.tr>
+                      <.td><%= elem.data %></.td>
+                      <.td><%= inspect(elem.metadata) %></.td>
+                    </.tr>
+                  <% end %>
+                  </tbody>
+                </.table>
+
+              <% end %>
+                </.card>
+              </div>
+            <br>
+            <.text_input form={@form} field={:question_input} placeholder="Explain the account system in Aptos." value={assigns[:question_now]}/>            <br>
             <br>
             <center><.button phx-click="show_waiting" color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
             <br>
-            <%= if assigns[:show_waiting] == true do %>
+            <%= if assigns[:show_waiting] == true and is_nil(assigns[:answer]) do %>
               <center><b>Please waiting for 15 sec to get the answer...</b></center>
             <% end %>
             <br>
@@ -430,61 +566,368 @@ Reference:
                 <.alert color="warning" label="How could I use Aptos CLI?" />
               </div>
             </a>
+            
           <%= 2 -> %>
-            <.text_input form={@form} field={:question_input_2} placeholder="Give me the examples about the Struct?" value={assigns[:question_now_2]}/>
-            <br>
-            <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+
+            <.p>Select the Vector Dataset:</.p>
+              <.select options={[ "aptos-smart-contracts-fragment-by-structure": "aptos-smart-contracts-fragment-by-structure", "aptos-whitepaper-handled": "aptos-whitepaper-handled"]} form={@form} field={:select_dataset} />
+              <br>
+              <.p>Or Input the <a href="https://app.embedbase.xyz/datasets" target="_blank" style="color:blue">Public Dataset</a> Name:</.p>
+              <.text_input form={@form} field={:dataset_name} placeholder="eg. web3-dataset" />
+
+              <!-- result panel -->
+              <div class="grid gap-5 mt-5 md:grid-cols-1 lg:grid-cols-1" style="height: auto;">
+                <.card>
+                <!-- answer -->
+                <%= if not is_nil(assigns[:answer]) do %>
+                  <%= raw(Earmark.as_html!(assigns[:answer])) %>
+                
+                <% else %>
+                  <br><br><br>
+                    <b>the smart answer would be shown here.</b>
+                  <br><br><br><br>
+                <% end %>
+                <!-- search result -->
+                <%= if not is_nil(assigns[:search_result]) do %>
+                  <br>
+                  <.p><b>Search Results in Dataset:</b></.p>
+                  <.table>
+                    <thead>
+                      <.tr>
+                        <.th>Result</.th>
+                        <.th>Metadata</.th>
+                      </.tr>
+                    </thead>
+                    <tbody>
+                    <%= for elem <- assigns[:search_result] do %>
+                      <.tr>
+                        <.td><%= elem.data %></.td>
+                        <.td><%= inspect(elem.metadata) %></.td>
+                      </.tr>
+                    <% end %>
+                    </tbody>
+                  </.table>
+
+                <% end %>
+                  </.card>
+                </div>
+              <br>
+              <.text_input form={@form} field={:question_input_2} placeholder={assigns[:question_now_2]} value={assigns[:question_now_2]}/>
+              <br>
+              <br>
+              <center><.button phx-click="show_waiting" color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+              <br>
+              <%= if assigns[:show_waiting] == true and is_nil(assigns[:answer]) do %>
+                <center><b>Please waiting for 15 sec to get the answer...</b></center>
+              <% end %>
+              <br>
+              <.p>Recommend Questions:</.p>
+              <br>
+              <a href="?page=1&question=intro_apt_obj_model">
+                <div class="flex items-start">
+                    <.alert color="info" label="Introduce the Aptos Object Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=aptos_design_token_model">
+                <div class="flex items-start mt-4">
+                  <.alert color="success" label="How does Aptos design Token Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=use_aptos_cli">
+                <div class="flex items-start mt-4">
+                  <.alert color="warning" label="How could I use Aptos CLI?" />
+                </div>
+              </a>
             <br>
           <%= 3 -> %>
-            <.text_input form={@form} field={:question_input_3} placeholder="Give me the examples about the Function?" value={assigns[:question_now_3]}/>
-            <br>
-            <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+<.p>Select the Vector Dataset:</.p>
+              <.select options={[ "aptos-smart-contracts-fragment-by-structure": "aptos-smart-contracts-fragment-by-structure", "aptos-whitepaper-handled": "aptos-whitepaper-handled"]} form={@form} field={:select_dataset} />
+              <br>
+              <.p>Or Input the <a href="https://app.embedbase.xyz/datasets" target="_blank" style="color:blue">Public Dataset</a> Name:</.p>
+              <.text_input form={@form} field={:dataset_name} placeholder="eg. web3-dataset" />
+
+              <!-- result panel -->
+              <div class="grid gap-5 mt-5 md:grid-cols-1 lg:grid-cols-1" style="height: auto;">
+                <.card>
+                <!-- answer -->
+                <%= if not is_nil(assigns[:answer]) do %>
+                  <%= raw(Earmark.as_html!(assigns[:answer])) %>
+                
+                <% else %>
+                  <br><br><br>
+                    <b>the smart answer would be shown here.</b>
+                  <br><br><br><br>
+                <% end %>
+                <!-- search result -->
+                <%= if not is_nil(assigns[:search_result]) do %>
+                  <br>
+                  <.p><b>Search Results in Dataset:</b></.p>
+                  <.table>
+                    <thead>
+                      <.tr>
+                        <.th>Result</.th>
+                        <.th>Metadata</.th>
+                      </.tr>
+                    </thead>
+                    <tbody>
+                    <%= for elem <- assigns[:search_result] do %>
+                      <.tr>
+                        <.td><%= elem.data %></.td>
+                        <.td><%= inspect(elem.metadata) %></.td>
+                      </.tr>
+                    <% end %>
+                    </tbody>
+                  </.table>
+
+                <% end %>
+                  </.card>
+                </div>
+              <br>
+              <.text_input form={@form} field={:question_input_3} placeholder={assigns[:question_now_3]} value={assigns[:question_now_3]}/>
+              <br>
+              <br>
+              <center><.button phx-click="show_waiting" color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+              <br>
+              <%= if assigns[:show_waiting] == true and is_nil(assigns[:answer]) do %>
+                <center><b>Please waiting for 15 sec to get the answer...</b></center>
+              <% end %>
+              <br>
+              <.p>Recommend Questions:</.p>
+              <br>
+              <a href="?page=1&question=intro_apt_obj_model">
+                <div class="flex items-start">
+                    <.alert color="info" label="Introduce the Aptos Object Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=aptos_design_token_model">
+                <div class="flex items-start mt-4">
+                  <.alert color="success" label="How does Aptos design Token Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=use_aptos_cli">
+                <div class="flex items-start mt-4">
+                  <.alert color="warning" label="How could I use Aptos CLI?" />
+                </div>
+              </a>
             <br>
           <%= 4 -> %>
-            <.text_input form={@form} field={:question_input_4} placeholder="Give me the examples about the Event?" value={assigns[:question_now_4]}/>
-            <br>
-            <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+            <.p>Select the Vector Dataset:</.p>
+              <.select options={[ "aptos-smart-contracts-fragment-by-structure": "aptos-smart-contracts-fragment-by-structure", "aptos-whitepaper-handled": "aptos-whitepaper-handled"]} form={@form} field={:select_dataset} />
+              <br>
+              <.p>Or Input the <a href="https://app.embedbase.xyz/datasets" target="_blank" style="color:blue">Public Dataset</a> Name:</.p>
+              <.text_input form={@form} field={:dataset_name} placeholder="eg. web3-dataset" />
+
+              <!-- result panel -->
+              <div class="grid gap-5 mt-5 md:grid-cols-1 lg:grid-cols-1" style="height: auto;">
+                <.card>
+                <!-- answer -->
+                <%= if not is_nil(assigns[:answer]) do %>
+                  <%= raw(Earmark.as_html!(assigns[:answer])) %>
+                
+                <% else %>
+                  <br><br><br>
+                    <b>the smart answer would be shown here.</b>
+                  <br><br><br><br>
+                <% end %>
+                <!-- search result -->
+                <%= if not is_nil(assigns[:search_result]) do %>
+                  <br>
+                  <.p><b>Search Results in Dataset:</b></.p>
+                  <.table>
+                    <thead>
+                      <.tr>
+                        <.th>Result</.th>
+                        <.th>Metadata</.th>
+                      </.tr>
+                    </thead>
+                    <tbody>
+                    <%= for elem <- assigns[:search_result] do %>
+                      <.tr>
+                        <.td><%= elem.data %></.td>
+                        <.td><%= inspect(elem.metadata) %></.td>
+                      </.tr>
+                    <% end %>
+                    </tbody>
+                  </.table>
+
+                <% end %>
+                  </.card>
+                </div>
+              <br>
+              <.text_input form={@form} field={:question_input_4} placeholder={assigns[:question_now_4]} value={assigns[:question_now_4]}/>
+              <br>
+              <br>
+              <center><.button phx-click="show_waiting" color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+              <br>
+              <%= if assigns[:show_waiting] == true and is_nil(assigns[:answer]) do %>
+                <center><b>Please waiting for 15 sec to get the answer...</b></center>
+              <% end %>
+              <br>
+              <.p>Recommend Questions:</.p>
+              <br>
+              <a href="?page=1&question=intro_apt_obj_model">
+                <div class="flex items-start">
+                    <.alert color="info" label="Introduce the Aptos Object Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=aptos_design_token_model">
+                <div class="flex items-start mt-4">
+                  <.alert color="success" label="How does Aptos design Token Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=use_aptos_cli">
+                <div class="flex items-start mt-4">
+                  <.alert color="warning" label="How could I use Aptos CLI?" />
+                </div>
+              </a>
             <br>
 
           <%= 5 -> %>
-            <.text_input form={@form} field={:question_input_5} placeholder="Give me the examples about the Spec?" value={assigns[:question_now_5]}/>
-            <br>
-            <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+<.p>Select the Vector Dataset:</.p>
+              <.select options={[ "aptos-smart-contracts-fragment-by-structure": "aptos-smart-contracts-fragment-by-structure", "aptos-whitepaper-handled": "aptos-whitepaper-handled"]} form={@form} field={:select_dataset} />
+              <br>
+              <.p>Or Input the <a href="https://app.embedbase.xyz/datasets" target="_blank" style="color:blue">Public Dataset</a> Name:</.p>
+              <.text_input form={@form} field={:dataset_name} placeholder="eg. web3-dataset" />
+
+              <!-- result panel -->
+              <div class="grid gap-5 mt-5 md:grid-cols-1 lg:grid-cols-1" style="height: auto;">
+                <.card>
+                <!-- answer -->
+                <%= if not is_nil(assigns[:answer]) do %>
+                  <%= raw(Earmark.as_html!(assigns[:answer])) %>
+                
+                <% else %>
+                  <br><br><br>
+                    <b>the smart answer would be shown here.</b>
+                  <br><br><br><br>
+                <% end %>
+                <!-- search result -->
+                <%= if not is_nil(assigns[:search_result]) do %>
+                  <br>
+                  <.p><b>Search Results in Dataset:</b></.p>
+                  <.table>
+                    <thead>
+                      <.tr>
+                        <.th>Result</.th>
+                        <.th>Metadata</.th>
+                      </.tr>
+                    </thead>
+                    <tbody>
+                    <%= for elem <- assigns[:search_result] do %>
+                      <.tr>
+                        <.td><%= elem.data %></.td>
+                        <.td><%= inspect(elem.metadata) %></.td>
+                      </.tr>
+                    <% end %>
+                    </tbody>
+                  </.table>
+
+                <% end %>
+                  </.card>
+                </div>
+              <br>
+              <.text_input form={@form} field={:question_input_5} placeholder={assigns[:question_now_5]} value={assigns[:question_now_5]}/>
+              <br>
+              <br>
+              <center><.button phx-click="show_waiting" color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+              <br>
+              <%= if assigns[:show_waiting] == true and is_nil(assigns[:answer]) do %>
+                <center><b>Please waiting for 15 sec to get the answer...</b></center>
+              <% end %>
+              <br>
+              <.p>Recommend Questions:</.p>
+              <br>
+              <a href="?page=1&question=intro_apt_obj_model">
+                <div class="flex items-start">
+                    <.alert color="info" label="Introduce the Aptos Object Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=aptos_design_token_model">
+                <div class="flex items-start mt-4">
+                  <.alert color="success" label="How does Aptos design Token Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=use_aptos_cli">
+                <div class="flex items-start mt-4">
+                  <.alert color="warning" label="How could I use Aptos CLI?" />
+                </div>
+              </a>
             <br>
           <%= 6 -> %>
-            <.text_input form={@form} field={:question_input_6} placeholder="Give me the examples about the Test?" value={assigns[:question_now_6]}/>
-            <br>
-            <center><.button color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+<.p>Select the Vector Dataset:</.p>
+              <.select options={[ "aptos-smart-contracts-fragment-by-structure": "aptos-smart-contracts-fragment-by-structure", "aptos-whitepaper-handled": "aptos-whitepaper-handled"]} form={@form} field={:select_dataset} />
+              <br>
+              <.p>Or Input the <a href="https://app.embedbase.xyz/datasets" target="_blank" style="color:blue">Public Dataset</a> Name:</.p>
+              <.text_input form={@form} field={:dataset_name} placeholder="eg. web3-dataset" />
+
+              <!-- result panel -->
+              <div class="grid gap-5 mt-5 md:grid-cols-1 lg:grid-cols-1" style="height: auto;">
+                <.card>
+                <!-- answer -->
+                <%= if not is_nil(assigns[:answer]) do %>
+                  <%= raw(Earmark.as_html!(assigns[:answer])) %>
+                
+                <% else %>
+                  <br><br><br>
+                    <b>the smart answer would be shown here.</b>
+                  <br><br><br><br>
+                <% end %>
+                <!-- search result -->
+                <%= if not is_nil(assigns[:search_result]) do %>
+                  <br>
+                  <.p><b>Search Results in Dataset:</b></.p>
+                  <.table>
+                    <thead>
+                      <.tr>
+                        <.th>Result</.th>
+                        <.th>Metadata</.th>
+                      </.tr>
+                    </thead>
+                    <tbody>
+                    <%= for elem <- assigns[:search_result] do %>
+                      <.tr>
+                        <.td><%= elem.data %></.td>
+                        <.td><%= inspect(elem.metadata) %></.td>
+                      </.tr>
+                    <% end %>
+                    </tbody>
+                  </.table>
+
+                <% end %>
+                  </.card>
+                </div>
+              <br>
+              <.text_input form={@form} field={:question_input_6} placeholder={assigns[:question_now_6]} value={assigns[:question_now_6]}/>
+              <br>
+              <br>
+              <center><.button phx-click="show_waiting" color="primary" label="Get Smart Answer ⏎" variant="outline" /></center>
+              <br>
+              <%= if assigns[:show_waiting] == true and is_nil(assigns[:answer]) do %>
+                <center><b>Please waiting for 15 sec to get the answer...</b></center>
+              <% end %>
+              <br>
+              <.p>Recommend Questions:</.p>
+              <br>
+              <a href="?page=1&question=intro_apt_obj_model">
+                <div class="flex items-start">
+                    <.alert color="info" label="Introduce the Aptos Object Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=aptos_design_token_model">
+                <div class="flex items-start mt-4">
+                  <.alert color="success" label="How does Aptos design Token Model?" />
+                </div>
+              </a>
+              <a href="?page=1&question=use_aptos_cli">
+                <div class="flex items-start mt-4">
+                  <.alert color="warning" label="How could I use Aptos CLI?" />
+                </div>
+              </a>
             <br>
           <%= _others -> %>
             # TODO
           <% end %>
           <br>
-          <%= if not is_nil(assigns[:answer]) do %>
-            <p> <b> Smart Answer:  </b></p>
-            <%= raw(Earmark.as_html!(assigns[:answer])) %>
-          <% end %>
-          <%= if not is_nil(assigns[:search_result]) do %>
-            <.p>Search Results in <a href="https://app.embedbase.xyz/datasets/5e924008-da05-43ce-a858-088a36ce9041" target="_blank">Dataset</a>: </.p>
-            <.table>
-              <thead>
-                <.tr>
-                  <.th>Result</.th>
-                  <.th>Data Source</.th>
-                  <.th>Data Type</.th>
-                </.tr>
-              </thead>
-              <tbody>
-              <%= for elem <- assigns[:search_result] do %>
-                <.tr>
-                  <.td><%= elem.data %></.td>
-                  <.td><a href={"#{elem.url}"} style="color:blue" target="_blank"><%= elem.metadata.file_name %></a></.td>
-                  <.td><%= elem.metadata.type %></.td>
-                </.tr>
-              <% end %>
-              </tbody>
-            </.table>
-          <% end %>
         </.form>
         <br>
         <center>

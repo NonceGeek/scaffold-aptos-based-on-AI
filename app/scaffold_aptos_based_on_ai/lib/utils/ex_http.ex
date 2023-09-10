@@ -72,29 +72,93 @@ defmodule ExHttp do
     {:error, "POST retires #{@retries} times and not success"}
   end
 
-  def http_delete(url, data, token, retries) do
-    body = Poison.encode!(data)
+  # +-------------+
+  # | http_delete |
+  # +-------------+
+  def http_delete(url) do
+    http_delete(url, @retries)
+  end
+
+  def http_delete(url, token, retries) do
     url
-    |> HTTPoison.request(:delete, 
-      body,
+    |> HTTPoison.delete(
       [
         {"User-Agent", @default_user_agent},
-        {"Content-Type", "application/json"},
         {"authorization", "Bearer #{token}"}
       ],
+      hackney: [
+        headers: [
+          {"User-Agent", @default_user_agent}
+        ]
+      ]
+    )
+    |> handle_response()
+    |> case do
+      {:ok, body} ->
+        {:ok, body}
+
+      {:error, 404} ->
+        {:error, 404}
+      {:error, _} ->
+        Process.sleep(500)
+        http_delete(url, token, retries - 1)
+    end
+  end
+
+  def http_delete(url, data, token, retries) do
+    body = Poison.encode!(data)
+
+    # # headers = Keyword.put_new(headers, :method, :delete)
+    # options = [headers: [
+    #   {"User-Agent", @default_user_agent},
+    #   {"authorization", "Bearer #{token}"}
+    # ]]
+
+    HTTPoison.request(
+        :delete,
+        url,
+        body,
+        [
+          {"User-Agent", @default_user_agent},
+          {"Content-Type", "application/json"},
+          {"authorization", "Bearer #{token}"}
+        ],
+        hackney: [headers: [{"User-Agent", @default_user_agent}]]
+    )
+    |> handle_response()
+    |> case do
+      {:ok, body} ->
+        {:ok, body}
+
+      {:error, 404} ->
+        {:error, 404}
+      {:error, _} ->
+        Process.sleep(500)
+        http_delete(url, data, token, retries - 1)
+    end
+  end
+
+  def http_delete(url, retries) do
+    url
+    |> HTTPoison.delete([{"User-Agent", @default_user_agent}],
       hackney: [headers: [{"User-Agent", @default_user_agent}]]
     )
     |> handle_response()
     |> case do
       {:ok, body} ->
         {:ok, body}
+
       {:error, 404} ->
         {:error, 404}
       {:error, _} ->
-        Process.sleep(1000)
-        http_delete(url, data, token, retries - 1)
+        Process.sleep(500)
+        http_delete(url, retries - 1)
     end
   end
+
+  # +-----------+
+  # | http post |
+  # +-----------+
 
   def http_post(url, data, token, retries) do
     body = Poison.encode!(data)

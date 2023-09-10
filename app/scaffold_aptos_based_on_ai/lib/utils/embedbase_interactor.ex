@@ -55,16 +55,11 @@ defmodule EmbedbaseInteractor do
         ExHttp.http_post(url, body, Constants.embedbase_key(), @default_retries)
     end
 
+    # Delete data
     def delete_data(dataset_id, ids) do
         url = "#{@api_url}/v1/#{dataset_id}"
         body = %{ids: ids}
         ExHttp.http_delete(url, body, Constants.embedbase_key(), @default_retries)
     end
-    #     Retrieving Data
-    # Using Bing Search
-    # Inserting Data
-    # Updating Data
-    # Delete data
-    # Delete dataset
 
 end
