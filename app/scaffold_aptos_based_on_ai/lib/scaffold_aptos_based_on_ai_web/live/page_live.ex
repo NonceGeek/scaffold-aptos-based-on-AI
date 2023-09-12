@@ -28,12 +28,14 @@ defmodule ScaffoldAptosBasedOnAIWeb.PageLive do
   def handle_params(%{"page" => num, "question" => "intro_apt_obj_model"}, _uri, socket) do
     answer = """
 # Object
-
+<br>
 The [Object model](https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-framework/sources/object.move) allows Move to represent a complex type as a set of resources stored within a single address and offers a rich capability model that allows for fine-grained resource control and ownership management.
 
 In the object model, an NFT or token can place common token data within a Token resource, object data within an ObjectCore resource, and then specialize into additional resources as necessary. For example, a Player object could define a player within a game and be an NFT at the same time. The ObjectCore itself stores both the address of the current owner and the appropriate data for creating event streams.
 
+
 ## [Comparison with the account resources model](https://aptos.dev/standards/aptos-object#comparison-with-the-account-resources-model)
+
 
 The existing Aptos data model emphasizes the use of the store ability within Move. Store allows for a struct to exist within any struct that is stored on-chain. As a result, data can live anywhere within any struct and at any address. While this provides great flexibility it has many limitations:
 
@@ -47,7 +49,8 @@ The existing Aptos data model emphasizes the use of the store ability within Mov
 
 > 💡Object is a core primitive in Aptos Move and created via the object module at 0x1::object.
 
-Reference: 
+
+**Reference:** 
 
 > Code: https://github.com/aptos-labs/aptos-core/blob/main/aptos-move/framework/aptos-framework/sources/object.move
 >
@@ -74,21 +77,21 @@ Reference:
 
   answer = """
 ## [Token standard comparison](https://aptos.dev/guides/nfts/aptos-token-comparison/#token-standard-comparison)
-
+<br>
 In Ethereum or even the whole blockchain world, the Fungible Token (FT) was initially introduced by [EIP-20](https://eips.ethereum.org/EIPS/eip-20), and Non-Fungible Token (NFT) was defined in [EIP-721](https://eips.ethereum.org/EIPS/eip-721). Later, [EIP-1155](https://eips.ethereum.org/EIPS/eip-1155) was proposed to combine FT and NFT or even Semi-Fungible Token (SFT) into the one standard.
 
 One deficiency of the Ethereum token contract is each token having to deploy individual contract code onto a contract account to distinguish it from other tokens even if it simply differs by name. Solana account model enables another pattern where code can be reused so that one generic program operates on various data. To create a new token, you could create an account that can mint tokens and more accounts that can receive them. The mint account itself uniquely determines the token type instead of contract account, and these are all passed as arguments to the one contract deployed to some executable account.
 
 The Aptos token standard shares some similarities with Solana, especially how it covers FT, NFT and SFT in one standard and also has a similar generic token contract, which also implicitly defines token standard. Basically, instead of deploying a new ERC20 smart contract for each new token, all you need to do is call a function in the contract with necessary arguments. Depending on what function you call, the token contract will mint/transfer/burn/... tokens.
-
+<br>
 ### [Token identification](https://aptos.dev/guides/nfts/aptos-token-comparison/#token-identification)
-
+<br>
 Aptos identifies a token by its `TokenId` that includes `TokenDataId` and `property_version`. The `property_version` shares the same concept with *Edition Account* in Solana, but there is no explicit counterpart in Ethereum as it is not required in any token standard interface.
 
 `TokenDataId` is a globally unique identifier of token group sharing all the metadata except for `property_version`, including token creator address, collection name and token name. In Ethereum, the same concept is implemented by deploying a token contract under a unique address so an FT type or a collection of NFTs is identified by different contract addresses. In Solana, the similar concept for token identifier is implemented as mint account, each of which will represent one token type. In Aptos, a creator account can have multiple token types created by giving different collections and token names.
-
+<br>
 ### [Token categorization](https://aptos.dev/guides/nfts/aptos-token-comparison/#token-categorization)
-
+<br>
 it is critical to understand, in Aptos, how to categorize different tokens to expect different sets of features:
 
 - `Fungible Token`: Each FT has one unique `TokenId`, which means tokens sharing the same creator, collection, name and property version are fungible.
@@ -96,9 +99,9 @@ it is critical to understand, in Aptos, how to categorize different tokens to ex
 - `Semi-Fungible Token`: The crypto communities lack a common definition for SFT. The only consensus is SFTs are comparatively new types of tokens that combine the properties of NFTs and FTs. Usually this is realized via the customized logic based on different customized properties.
 
 It's worth noting that Solana has an `Edition` concept that represents an NFT that was copied from a Master Edition NFT. This can apply to use cases such as tickets in that they are almost exactly the same except for some properties, for example, serial numbers or seats for tickets. They could be implemented in Aptos by bumping the token `property_version` and mutating corresponding fields in `token_properties`. In a nutshell, `Edition` is to Solana token is what `property_version` is to Aptos token; but there is no similar concept in Ethereum token standard.
-
+<br>
 ### Token metadata[](https://aptos.dev/guides/nfts/aptos-token-comparison/#token-metadata)
-
+<br>
 Aptos token has metadata defined in `TokenData` with the multiple fields that describe widely acknowledged property data that needs to be understood by dapps. To name a few fields:
 
 - `name`: The name of the token. It must be unique within a collection.
@@ -110,9 +113,9 @@ Aptos token has metadata defined in `TokenData` with the multiple fields that de
 In Ethereum, only a small portion of such properties are defined as methods, such as `name()`, `symbol()`, `decimals()`, `totalSupply()` of ERC-20; or `name()` and `symbol()` and `tokenURI()` of the optional metadata extension for ERC-721; ERC-1155 also has a similar method `uri()` in its own optional metadata extension. Therefore, for tokens on Ethereum, that token metadata is not standardized so that dapps have to take special treatment case by case, which incurs unnecessary overhead for developers and users.
 
 In Solana, the Token Metadata program offers a Metadata Account defining numerous metadata fields associated with a token as well, including `collection` which is defined in `TokenDataId` in Aptos. Unfortunately, it fails to provide on-chain property with mutability configuration, which could improve the usability of the token standard by enabling more innovative smart contract logic based on on-chain properties. SFT is a good example of this. Instead, the `Token Standard` field introduced to Token Metadata v1.1.0 only provides `attributes` as a container to hold customized properties. However, it is neither mutable nor on-chain, as an off-chain JSON standard.
-
+<br>
 Reference: 
-
+<br>
 > Code: https://github.com/aptos-labs/aptos-core/tree/main/aptos-move/framework/aptos-token/sources
 >
 > Document: https://aptos.dev/guides/nfts/aptos-token-comparison/#token-standard-comparison
@@ -223,6 +226,14 @@ Reference:
       assign(socket,
         question_now_5: question
       )
+    }
+  end
+
+  def handle_event("change-input", %{"_target" => ["f", "select_dataset"]}, _, socket) do
+    # TODO
+    {
+      :noreply, 
+      socket
     }
   end
 
@@ -509,6 +520,7 @@ Reference:
               <.card>
               <!-- answer -->
               <%= if not is_nil(assigns[:answer]) do %>
+                <br>
                 <%= raw(Earmark.as_html!(assigns[:answer])) %>
               
               <% else %>
@@ -561,11 +573,11 @@ Reference:
                 <.alert color="success" label="How does Aptos design Token Model?" />
               </div>
             </a>
-            <a href="?page=1&question=use_aptos_cli">
+            <!--<a href="?page=1&question=use_aptos_cli">
               <div class="flex items-start mt-4">
                 <.alert color="warning" label="How could I use Aptos CLI?" />
               </div>
-            </a>
+            </a>-->
             
           <%= 2 -> %>
 
