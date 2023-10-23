@@ -20,6 +20,7 @@ defmodule ScaffoldAptosBasedOnAIWeb.Router do
     live "/", PageLive, :index
     live "/submit_proposal", ProposalLive, :index
     live "/code_analyzer", CodeAnalyzerLive, :index
+    live "/solidity_code_analyzer", SolidityCodeAnalyzerLive,  :index
     get "/test", PageController, :home
   end
 

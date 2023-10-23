@@ -5,7 +5,7 @@ defmodule ScaffoldAptosBasedOnAI.MixProject do
     [
       app: :scaffold_aptos_based_on_ai,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      # elixir: "~> 1.14",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -71,6 +71,9 @@ defmodule ScaffoldAptosBasedOnAI.MixProject do
       # openai
       {:openai, "~> 0.4.2"},
       {:httpoison, "~> 2.0", override: true},
+
+      # solidity parser
+      {:solidity_parser, "~> 0.1.0"}
     ]
   end
 
